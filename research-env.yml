@@ -14,15 +14,10 @@ Parameters:
       - ml.p3.2xlarge
     Description: Enter a valid SageMaker notebook instance type. Defaults to ml.t2.medium.
 
-  UserName:
+  NotebookEnvName:
     Type: String
     Description: Name of the Workshop User
-    Default: WorkshopUser
 
-  IAMUserPassword:
-    Description: IAM User Password used for the workshop user.
-    Type: String
-    NoEcho: True
     
 Resources:
   SageMakerResearchIAMRole:
@@ -57,73 +52,10 @@ Resources:
   SageMakerNotebookInstance:
     Type: "AWS::SageMaker::NotebookInstance"
     Properties:
-      NotebookInstanceName: !Sub ${UserName}-Workshop-Notebook
+      NotebookInstanceName: !Sub ${NotebookEnvName}-Workshop-Notebook
       InstanceType: !Ref NotebookInstanceType
       RoleArn: !GetAtt SageMakerResearchIAMRole.Arn
       LifecycleConfigName: !GetAtt ResearchNotebookLifecycleConfig.NotebookInstanceLifecycleConfigName
-
-  WorkshopUser:
-    Type: "AWS::IAM::User"
-    Properties: 
-      LoginProfile:
-        Password: !Ref IAMUserPassword
-      UserName: !Ref UserName
-      ManagedPolicyArns:
-          - arn:aws:iam::aws:policy/ReadOnlyAccess
-          
-  WorkshopPolicy:
-    Type: "AWS::IAM::Policy"
-    Properties: 
-      PolicyDocument: 
-        Version: '2012-10-17'
-        Statement:
-        - Sid: WorkshopAccess
-          Effect: Allow
-          Action: [        
-              'sagemaker:Start*',
-              'sagemaker:Stop*',
-              'sagemaker:CreatePresignedNotebookInstanceUrl'
-          ]
-          Resource: [
-              !Ref SageMakerNotebookInstance 
-          ]
-          Condition:
-              StringEquals:
-                aws:RequestedRegion: !Sub ${AWS::Region}
-        - Sid: WorkshopListAccess
-          Effect: Allow
-          Action: [        
-              'sagemaker:List*',
-              'sagemaker:Describe*'
-          ]
-          Resource: "*"
-          Condition:
-              StringEquals:
-                aws:RequestedRegion: !Sub ${AWS::Region}
-        - Sid: WorkshopBatchAccess
-          Effect: Allow
-          Action: [        
-              'batch:SubmitJob'
-          ]
-          Resource: "*"
-          Condition:
-              StringEquals:
-                aws:RequestedRegion: !Sub ${AWS::Region}
-        - Sid: AppASAccess
-          Effect: Allow
-          Action: [        
-              'application-autoscaling:RegisterScalableTarget',
-              'ec2:ModifySpotFleetRequest'
-          ]
-          Resource: "*"
-          Condition:
-              StringEquals:
-                aws:RequestedRegion: !Sub ${AWS::Region}        
-
-      PolicyName: !Sub ${UserName}-WorkshopPolicy
-      Users:
-        - !Ref UserName
-    DependsOn: WorkshopUser 
     
 Outputs:
   SageMakerNotebookInstance:
